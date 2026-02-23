@@ -738,7 +738,6 @@ def install_artwork(
     if logo:
         copy_both(logo, grid_dir / f"{appid32}_logo.png", grid_dir / f"{long_id}_logo.png")
 
-
 # ----------------------------
 # localconfig.vdf (Steam Input enable/disable/default)
 # ----------------------------
@@ -1134,6 +1133,24 @@ def _apply_for_steamid(steam_root: Path, steamid: str, args: argparse.Namespace)
                 flatpak_app_id = t
                 break
 
+    grid_dir = cfg / "grid"
+    grid_dir.mkdir(parents=True, exist_ok=True)
+
+    # Optional: copy icon into grid dir and set shortcut icon path
+    if args.icon_file:
+        src_icon = Path(args.icon_file)
+        if not src_icon.exists():
+            return 2, f"icon-file not found: {src_icon}"
+
+        # If you want EXACTLY io.github.sookyboo.NoxDecomp.png:
+        if flatpak_app_id:
+            dst_icon = grid_dir / f"{flatpak_app_id}.png"
+        else:
+            dst_icon = grid_dir / f"{transform_title(name)}.png"
+
+        shutil.copyfile(src_icon, dst_icon)
+        args.icon = str(dst_icon)
+
     sc_new = Shortcut(
         appid=int(appid_signed),
         app_name=name,
@@ -1388,7 +1405,8 @@ def main() -> int:
     ap.add_argument("--portrait", type=str, default=None, help="Portrait grid PNG -> {appid}p.png (writes both 32-bit and long-id)")
     ap.add_argument("--hero", type=str, default=None, help="Hero PNG -> {appid}_hero.png (writes both 32-bit and long-id)")
     ap.add_argument("--logo", type=str, default=None, help="Logo PNG -> {appid}_logo.png (writes both 32-bit and long-id)")
-
+    ap.add_argument("--icon-file", type=str, default=None,
+                    help="PNG icon to copy into userdata/<steamid>/config/grid/ and set as shortcut icon path")
     args = ap.parse_args()
 
     steam_root = Path(args.steam_root) if args.steam_root else detect_steam_root()
